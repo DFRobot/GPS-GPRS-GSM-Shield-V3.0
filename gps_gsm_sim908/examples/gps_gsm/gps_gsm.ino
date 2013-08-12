@@ -35,7 +35,6 @@ void setup () {
 
 //
 void loop () {
-	char data_buf[100] = "hello:";
 	int stat = gps_get_gga ();	// read data from GPS, return 0 is ok
 	#ifdef DEBUG
 	Serial.println ("gps_get_gga () return stat:");

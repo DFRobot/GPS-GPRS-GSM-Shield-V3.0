@@ -2,8 +2,8 @@
 
 /*
  *	by 2013-08-02
- *	test on Leonardo 
- *	Serial1 to GPS
+ *	test on Leonardo &XBEE, can't use on Arduino Uno board
+ *	Serial1 <-> GPS and Serial <-> computer
  *
  */
 
@@ -23,7 +23,7 @@
 #define GGA_NUM 15
 #define RMC_NUM 14
 
-//
+//$GPGGA
 char *gga_table[GGA_NUM] = {
 	"Message ID", 			//0
 	"UTC Time", 			//1
@@ -42,7 +42,7 @@ char *gga_table[GGA_NUM] = {
 	"Checksum",			//14
 };
 
-//
+//$GPRMC
 char *gprmc_table[RMC_NUM] = {
 	"Message ID",			//0
 	"UTC Time",                     //1
@@ -78,7 +78,7 @@ uint8_t checksum_xor (uint8_t *array, uint8_t leng) {
 }
 
 
-//
+//power and start gps
 void start_gps () {
 	digitalWrite (5, HIGH);
 	delay (1500);
@@ -157,7 +157,8 @@ static int is_GPGGA () {
 	return 1;
 }
 
-static uint8_t get_gga_leng () {
+//get gpgga length
+uint8_t get_gga_leng () {
 	uint8_t l;
 	for (l=0; l<GPS_BUF_SIZE && gps_buf[l] != 0x0d ; l++);
 	return l;
@@ -213,21 +214,21 @@ static void gps_gga_set_str () {
 	//gps_buf[i] = '\0';
 }
 
-//
+//must do this to get data, and return state 
 int gps_get_gga (void) {
 	int stat = 0;
-	if (gps_read ()) {
+	if (gps_read ()) {//read data from GPS
 		if (is_GPGGA ()) {
 			build_gga_p ();	// build *gga_p[] by gps_buf
 			gps_gga_set_str ();
 			if (checksum_gga () == 0)
-				stat = 0;
+				stat = 0;//gpgga data checksum is ok
 			else 
-				stat = 1;
+				stat = 1;//checksum error
 		} else 
-			stat = 2;
+			stat = 2;//not "$GPGGA", id error
 	} else 
-		stat = 3;
+		stat = 3;//data is bad
 
 	return stat;
 }
@@ -235,7 +236,7 @@ int gps_get_gga (void) {
 
 //get UTC second
 uint8_t gps_gga_utc_ss () {
-	return (gga_p[1][4]-'0')*10+gga_p[1][5]-'0';
+	return (gga_p[1][4]-'0')*10 + gga_p[1][5]-'0';
 }
 
 //get UTC minute
@@ -285,28 +286,22 @@ char* gps_gga_HDOP_s () {
 
 //get N/S
 char* gps_gga_NS () {
-	return (char*)gga_p[3];
-	/*
 	if (gga_p[3][0] == '\0')
-		return '0';
+		return "0";
 	else if (gga_p[3][0] == 'N' || gga_p[3][0] == 'S')
-		return gga_p[3][0];
+		return (char*)gga_p[3];
 	else 
-		return '?';
-		*/
+		return "?";
 }
 
 //get E/W
 char* gps_gga_EW () {
-	return (char*)gga_p[5];
-	/*
 	if (gga_p[5][0] == '\0')
-		return '0';
+		return "0";
 	else if (gga_p[5][0] == 'E' || gga_p[5][0] == 'W')
-		return gga_p[5][0];
+		return (char*)gga_p[5];
 	else 
-		return '?';
-		*/
+		return "?";
 }
 
 //
@@ -339,7 +334,7 @@ void gps_gga_print () {
 #endif
 
 /*
-void send_string (char* numble, char*string) {
+void send_msg_with_num (char* numble, char*string) {
 		char num_buf[25];
 		sprintf (num_buf, "AT+CMGS=\"%s\"", numble);
 		gsm_enable ();
@@ -358,30 +353,35 @@ void send_string (char* numble, char*string) {
 }
 */
 
-//
-void gsm_set_numble (char *numble) {
-		char num_buf[25];
-		sprintf (num_buf, "AT+CMGS=\"%s\"", numble);
-		gsm_enable ();
-		gps_disable ();
-		delay (2000);
-		Serial1.println ("AT");
-		delay (200);
-		Serial1.println ("AT");
-		delay (200);
-		Serial1.println ("AT+CMGF=1");
-		delay (200);
-		Serial1.println (num_buf);
-		delay (200);
+//set mobile numble, begin send message
+void gsm_begin_msg (char *numble) {
+	char num_buf[25];
+	sprintf (num_buf, "AT+CMGS=\"%s\"", numble);
+	gsm_enable ();
+	gps_disable ();
+	delay (2000);
+	Serial1.println ("AT");
+	delay (200);
+	Serial1.println ("AT");
+	delay (200);
+	Serial1.println ("AT+CMGF=1");
+	delay (200);
+	Serial1.println (num_buf);
+	delay (200);
 }
 
-//
-void gsm_send_message (char *message) {
+//send message to mobile 
+void gsm_send_msg (char *message) {
+	Serial1.print (message);
+}
+
+//send message to mobile 
+void gsm_send_msgln (char *message) {
 	Serial1.println (message);
 }
 
-//
-void gsm_end_send () {
+//stop send message and start gps
+void gsm_stop_send () {
 	Serial1.write (26);
 	delay (200);
 	gsm_disable ();
@@ -390,7 +390,7 @@ void gsm_end_send () {
 }
 
 
-//
+//gps and gsm init
 void gps_init () {
 	pinMode (3, OUTPUT);
 	pinMode (4, OUTPUT);
