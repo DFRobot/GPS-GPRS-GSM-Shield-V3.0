@@ -44,13 +44,13 @@ void loop () {
 	if (stat == 0 || stat == 1) {
 		if (gps_gga_is_fix ()) {	//true if fix
 			//send_message ("18501683475", gps_gga_utc_s ());
-			gsm_set_numble ("18501683475");	//
-			gsm_send_message (gps_gga_utc_s ());
-			gsm_send_message (gps_gga_EW ());
-			gsm_send_message (gps_gga_NS ());
-			gsm_send_message (gps_gga_lat_s ());
-			gsm_send_message (gps_gga_long_s ());
-			gsm_end_send ();
+			gsm_begin_msg ("18501683475");
+			gsm_send_msgln (gps_gga_utc_s ());
+			gsm_send_msgln (gps_gga_EW_s ());
+			gsm_send_msgln (gps_gga_NS_s ());
+			gsm_send_msgln (gps_gga_lat_s ());
+			gsm_send_msgln (gps_gga_long_s ());
+			gsm_stop_send ();
 			while (1);
 		}
 	}
@@ -95,9 +95,9 @@ void loop () {
 		Serial.println (gps_gga_utc_ss ());
 
 		Serial.println ("gps_gga_NS ()");
-		Serial.println (gps_gga_NS (), 6);
+		Serial.println (gps_gga_NS ());
 		Serial.println ("gps_gga_EW ()");
-		Serial.println (gps_gga_EW (), 6);
+		Serial.println (gps_gga_EW ());
 
 		Serial.println ("gps_gga_lat ()");
 		Serial.println (gps_gga_lat (), 6);

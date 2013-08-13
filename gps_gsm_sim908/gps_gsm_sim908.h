@@ -285,7 +285,17 @@ char* gps_gga_HDOP_s () {
 }
 
 //get N/S
-char* gps_gga_NS () {
+char gps_gga_NS () {
+	if (gga_p[3][0] == '\0')
+		return '0';
+	else if (gga_p[3][0] == 'N' || gga_p[3][0] == 'S')
+		return (char)gga_p[3][0];
+	else 
+		return '?';
+}
+
+//get N/S
+char* gps_gga_NS_s () {
 	if (gga_p[3][0] == '\0')
 		return "0";
 	else if (gga_p[3][0] == 'N' || gga_p[3][0] == 'S')
@@ -295,7 +305,17 @@ char* gps_gga_NS () {
 }
 
 //get E/W
-char* gps_gga_EW () {
+char gps_gga_EW () {
+	if (gga_p[5][0] == '\0')
+		return '0';
+	else if (gga_p[5][0] == 'E' || gga_p[5][0] == 'W')
+		return (char)gga_p[5][0];
+	else 
+		return '?';
+}
+
+//get E/W
+char* gps_gga_EW_s () {
 	if (gga_p[5][0] == '\0')
 		return "0";
 	else if (gga_p[5][0] == 'E' || gga_p[5][0] == 'W')
