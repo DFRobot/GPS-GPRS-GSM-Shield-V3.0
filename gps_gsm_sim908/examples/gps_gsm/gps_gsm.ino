@@ -64,10 +64,15 @@ void loop () {
 		break;
 	case 1:
 		#ifdef DEBUG
-		Serial.println ("GPGGA ID is error!");
+		Serial.println ("error! data checksum is fail");
 		#endif
 		break;
 	case 2:
+		#ifdef DEBUG
+		Serial.println ("GPGGA ID is error!");
+		#endif
+		break;
+	case 3:
 		#ifdef DEBUG
 		Serial.println ("data is error!");
 		#endif
