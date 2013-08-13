@@ -1,4 +1,4 @@
-/********************* start of file *************************/
+/********************* start of gps_gsm.ino *************************/
 
 /*
  *	created:	2013-08-02
@@ -8,11 +8,15 @@
  *
  */
 
-//  #ifndef DEBUG
-//  #define DEBUG
-//  #endif
+#ifndef DEBUG
+#define DEBUG
+#endif
 
 #include "gps_gsm_sim908.h"
+
+//for test, changed it to yours phone numble 
+char *phone_num = "18501680000";
+
 
 //
 void setup () {
@@ -36,15 +40,11 @@ void setup () {
 //
 void loop () {
 	int stat = gps_get_gga ();	// read data from GPS, return 0 is ok
-	#ifdef DEBUG
-	Serial.println ("gps_get_gga () return stat:");
-	Serial.println (stat);	//for test
-	#endif
 
 	if (stat == 0 || stat == 1) {
 		if (gps_gga_is_fix ()) {	//true if fix
-			//send_message ("18501683475", gps_gga_utc_s ());
-			gsm_begin_msg ("18501683475");
+			//send_message (phone_num, gps_gga_utc_s ());
+			gsm_begin_msg (phone_num);
 			gsm_send_msgln (gps_gga_utc_s ());
 			gsm_send_msgln (gps_gga_EW_s ());
 			gsm_send_msgln (gps_gga_NS_s ());
@@ -83,39 +83,7 @@ void loop () {
 	Serial.println ("$GPGGA data:");
 	gps_gga_print ();	//for test
 	#endif
-
-	
-
-	/*
-	if (gps_gga_is_fix () == 0)	//check if is fix
-		Serial.println ("can't fix! please go outside!");
-	else {
-		Serial.println ("ok! is fix!");
-
-		Serial.println ("gps_gga_utc_hh ()");
-		Serial.println (gps_gga_utc_hh ());
-		Serial.println ("gps_gga_utc_mm ()");
-		Serial.println (gps_gga_utc_mm ());
-		Serial.println ("gps_gga_utc_ss ()");
-		Serial.println (gps_gga_utc_ss ());
-
-		Serial.println ("gps_gga_NS ()");
-		Serial.println (gps_gga_NS ());
-		Serial.println ("gps_gga_EW ()");
-		Serial.println (gps_gga_EW ());
-
-		Serial.println ("gps_gga_lat ()");
-		Serial.println (gps_gga_lat (), 6);
-		Serial.println ("gps_gga_long ()");
-		Serial.println (gps_gga_long (), 6);
-		Serial.println ("gps_gga_HDOP ()");
-		Serial.println (gps_gga_HDOP (), 6);
-		Serial.println ("gps_gga_MSL ()");
-		Serial.println (gps_gga_MSL (), 6);
-		Serial.println ();
-	}
-	*/
 }
 
 
-/********************* end of file *************************/
+/********************* end of gps_gsm.ino *************************/
