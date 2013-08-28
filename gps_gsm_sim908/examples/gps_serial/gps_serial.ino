@@ -8,6 +8,7 @@
  *
  */
 
+#define DEBUG
 #include "gps_gsm_sim908.h"
 
 //
