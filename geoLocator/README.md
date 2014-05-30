@@ -21,3 +21,9 @@ Setup the server and make sure it is running. Check out the the following comman
 <your-webserver-address-or-php-file-here>?latitude=-34.12345&longitude=-64.2345 //change values to try it
 
 Then reload the main website. Another way is list the .txt files on your server to see if some new file was created with wrong date.
+
+
+## Contribute
+
+Clone git, edit and commit with your bug fix name and changes.
+
