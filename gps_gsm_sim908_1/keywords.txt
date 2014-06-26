@@ -1,0 +1,62 @@
+######################################## 
+#######################################
+# Syntax Coloring Map For GPS-GPRS-GSM-Shield-V3.0 
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+gga_table	KEYWORD1
+gps_buf	KEYWORD1
+gga_p	KEYWORD1
+
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+gps_enable	KEYWORD2
+gps_disable	KEYWORD2
+gsm_enable	KEYWORD2
+gsm_disable	KEYWORD2
+
+gps_init	KEYWORD2
+start_gps	KEYWORD2
+gps_read	KEYWORD2
+is_GPGGA	KEYWORD2
+get_gga_leng	KEYWORD2
+build_gga_p	KEYWORD2
+gps_gga_is_fix	KEYWORD2
+gps_gga_checksum	KEYWORD2
+chechsum_gga	KEYWORD2
+gps_gga_set_str	KEYWORD2
+gps_get_gga	KEYWORD2
+gps_gga_utc_ss	KEYWORD2
+gps_gga_utc_hh	KEYWORD2
+gps_gga_utc_mm	KEYWORD2
+gps_gga_utc_s	KEYWORD2
+gps_gga_lat	KEYWORD2
+gps_gga_long	KEYWORD2
+gps_gga_long_s	KEYWORD2
+gps_gga_HDOP	KEYWORD2
+gps_gga_HDOP_s	KEYWORD2
+gps_gga_NS	KEYWORD2
+gps_gga_NS_s	KEYWORD2
+gps_gga_EW	KEYWORD2
+gps_gga_EW_s	KEYWORD2
+gps_gga_MSL	KEYWORD2
+gps_gga_MSL_s	KEYWORD2
+gps_gga_geoid_sep	KEYWORD2
+gps_gga_geoid_sep_s	KEYWORD2
+gps_gga_print	KEYWORD2
+gsm_begin_msg	KEYWORD2
+gsm_send_msg	KEYWORD2
+gsm_stop_send	KEYWORD2
+gps_init	KEYWORD2
+
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
