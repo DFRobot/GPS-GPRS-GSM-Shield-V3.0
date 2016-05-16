@@ -1,0 +1,388 @@
+
+/*This code has been developed by Francisco Caussa
+ * Under Licence GPLv3
+ * Th porpuse of this code is to work with any Arduino Board 
+ * and a Sim908 GPS/GPRS/GSM Module
+ * email: francisco.caussa@gmail.com
+ *  
+ * 
+ */
+ 
+ /*______________USAGE_______________
+ *This code is intended to be used between Arduino (or similar boards) and SIM908 GPS/GPRS/GSM module.
+ *You can modify the code to fit other MCU
+ *it uses Serial AT commands so it can be adapted to fit almost any MCU with serial capabilities
+ */
+ 
+ 
+ /*___________WIRING________________
+ *This code uses Software serial to talk between GPS/GSM/GPRS shield and MCU
+ *Therefore Serial pins (0,1 on Arduino-Like boards) are unused, so you can debug with SerialMonitor
+ *WARNING!
+ *It requires hardware modifications on your shield.
+ *You have to "BEND" pins 0,1 from shield so they no longer connect to the MCU board
+ *And you have to wire those pins to the ones you will use on Software serial.
+ *In this example, Software serial is defined on PINS 10 and 11.
+ *You can change them to whatever you feel like.
+ */
+ 
+ 
+ /*This code has been modified several times.
+ *It requires Software Serial and TimerOne libraries.
+ *TimerOne Library ----->  https://github.com/PaulStoffregen/TimerOne Thank you Paul for your Library.
+ *Software Serial ----> https://www.arduino.cc/en/Reference/SoftwareSerial
+
+
+ 
+#include <SoftwareSerial.h>
+#include <TimerOne.h>
+SoftwareSerial sim908(10, 11); // RX, TX for debug porpouses
+
+char latitude[15]; //latitude variable
+char longitude[15]; //longitude Variable
+
+char last_latitude[15]; //last latitude used to compare if location changed
+char last_longitude[15]; //last longitude used to compare if location changed 
+
+
+String inData; //Serial Buffer
+char inDataCharArray[50];
+
+boolean iguales = true; //Flag to compare if variables are the same
+
+boolean validCode = false; //Flag to check is SMS code is valid to execute "something"
+
+char msgSMS[20];
+char msg2send[20];
+char answer[20];
+
+int inicioCodigo;
+int v207;
+boolean is207 = false;
+
+int interruptCounter=0;  
+
+
+
+void setup()
+{
+  //Init the driver pins for GSM function
+
+
+  
+  pinMode(3,OUTPUT);
+  pinMode(4,OUTPUT);
+  pinMode(5,OUTPUT);
+  //Output GSM Timing 
+  digitalWrite(5,HIGH);
+  delay(1500);
+  digitalWrite(5,LOW); 
+  
+  sim908.begin(9600);
+  Serial.begin(9600);
+  digitalWrite(3,LOW);//enable GSM TX、RX
+  digitalWrite(4,HIGH);//disable GPS TX、RX
+
+  delay(30000); //wait 30s for shield to initialize
+
+  setTextModeSMS();
+
+  delay(1000);
+
+  start_GSM(); //set up GSM configuration
+
+  delay(5000);
+
+  start_GPS(); //set up and initialize GPS
+
+  delay(2000);
+
+  sim908.flush(); //clear whatever is left on serial.
+
+  Timer1.initialize(1000000); // set a timer of length 1000000 microseconds (1 sec)
+  Timer1.attachInterrupt( timerISR ); // attach the service routine here
+
+  
+
+}
+void loop()    
+{ 
+  while(!(Serial.available()>0)){
+    //do nothing until a serial SMS reaches or interrupt makes update GPS coordinates
+  }
+}
+
+void start_GSM(){
+  //Configuracion GPRS Claro Argentina
+  sim908.println("AT");
+  delay(2000);
+  sim908.println("AT+CNMI=2,2,0,0,0");        // as soon as somethnig reaches the SIM908, will be sent throught serial to the Arduino
+  delay(2000);
+  sim908.println("AT+CREG?");
+  delay(2000);
+  sim908.println("AT+SAPBR=3,1,\"APN\",\"igprs.claro.com.ar\""); //APN
+  delay(2000);
+  sim908.println("AT+SAPBR=3,1,\"USER\",\"clarogprs\""); //user
+  delay(2000);
+  sim908.println("AT+SAPBR=3,1,\"PWD\",\"clarogprs999\""); //Pass
+  delay(2000);
+  sim908.println("AT+SAPBR=3,1,\"Contype\",\"GPRS\"");
+  delay(2000);
+  sim908.println("AT+SAPBR=1,1");
+  delay(10000);
+  sim908.println("AT+HTTPINIT");
+  delay(2000);
+  sim908.println("AT+HTTPPARA=\"CID\",1");
+  delay(2000);
+}
+
+void send_GPRS(){
+
+  sim908.print("AT+HTTPPARA=\"URL\",\"YOU_WEB_SERVER_URL_/.php?latitude="); 
+  sim908.print(latitude);
+  sim908.print("&longitude=");
+  sim908.print(longitude);
+  sim908.println("\"");
+  delay(2000);
+  sim908.println("AT+HTTPACTION=0"); //now GET action
+  delay(2000);
+
+
+}
+
+
+void start_GPS(){
+  //Configuracion en Inicializacion GPS
+  sim908.print("AT");
+  delay(1000);
+  sim908.println("AT+CGPSIPR=9600");// (set the baud rate)
+  delay(1000);
+  sim908.println("AT+CGPSPWR=1"); // （turn on GPS power supply）
+  delay(1000);
+  sim908.println("AT+CGPSRST=1"); //（reset GPS in autonomy mode）
+  delay(10000); //delay para esperar señal del GPS
+}
+
+void read_GPS(){
+
+  sim908.println("AT+CGPSINF=0");
+
+  read_String();
+  inData.toCharArray(inDataCharArray,50);
+  strtok(inDataCharArray, ",");
+  strcpy(longitude,strtok(NULL, ",")); // Gets longitude
+  strcpy(latitude,strtok(NULL, ",")); // Gets latitude
+
+
+  DDMM2ddmm(latitude, "latitud"); //fix data
+  DDMM2ddmm(longitude, "longitud"); //fix data
+
+
+}
+
+
+void read_String() { //function to read serial data and store it as string
+  inData="";
+  inData=sim908.readStringUntil('\n');
+  Serial.print(inData); //Debug 
+}
+
+
+void DDMM2ddmm(char charArray[15], String flag){
+  boolean negative = false;
+  double DD;
+  double MM;
+  char dd[5];
+  char mm[15];
+  int index=0;
+  int i=0;
+  int j=0;
+  int k=0;
+  int dotposition;
+  int nullcharcounter;
+  boolean notadot=true;
+  boolean notlenghtend=true;
+
+  if(charArray[0]=='-'){
+    negative=true;
+    index=1;
+  }
+
+  while(notadot){
+    if(charArray[index]=='.'){
+      notadot=false;
+    }
+    else{
+      index++;
+    }
+  }
+
+  dotposition=index;
+
+
+
+  if(negative){
+    i=1;
+  }
+  else{
+    i=0;
+  }
+
+  k=0;
+
+  for(j=i; j<dotposition-2;j++){
+    dd[k]=charArray[j];
+    k++;
+  }
+
+  dd[k]='\0';
+
+  index=(dotposition-2);
+  mm[0]='0';
+  mm[1]='.';
+  mm[2]=charArray[index];
+  mm[3]=charArray[index+1];
+
+  index=(dotposition+1);
+
+  k=0;
+  nullcharcounter=0;
+
+  while(notlenghtend){
+    if(charArray[index]=='\0'){
+      notlenghtend=false;
+    }
+    else{
+      nullcharcounter++;
+      index++;  
+    }
+
+
+  }
+  index=(dotposition+1);
+
+  for(k=0;k<nullcharcounter;k++){
+    mm[k+4]=charArray[index+k];
+  }
+  mm[k+5]='\0';
+
+  DD=atof(dd);
+  if(negative){
+    DD=DD*(-1);
+  }
+
+  MM=atof(mm);
+
+  MM=100*MM/60;
+
+  if(negative){
+    MM=MM*(-1); 
+  }
+
+  DD=DD+MM; //re arrange variable
+
+
+  if(flag=="latitud"){
+
+    dtostrf(DD,5,6,latitude); //write lattitude into variable to be sent
+  }
+
+  if(flag=="longitud"){
+
+    dtostrf(DD,5,6,longitude); //write longitude into variable to be sent
+  }
+}
+
+void setTextModeSMS(){
+  sim908.println("AT+CMGF=1"); //Set to Text Mode
+  delay(1000);
+  deleteALL(); //erase all messages
+}
+
+
+
+void readSMS() {
+    inicioCodigo=inData.indexOf("P"); //find the position of letter P. since valid code begins as P207 
+    if(inicioCodigo>0){
+      if(inData.substring(inicioCodigo+1,inicioCodigo+3)=="207"){
+        //then, there is a valid code on the message!
+        validCode=true; 
+      }       
+  } //Now, go DECODE IT!
+  if(validCode){
+    decodeMSG;
+  }
+  else{
+   sendSMS("Error! Codigo no verificado!"); //Error message as the SMS did not contiain a valid code
+  }
+
+}
+
+void deleteALL() {
+  sim908.println("AT+CMGD=1,4"); //deletes all SMS 
+  delay(1000);
+}
+
+void sendSMS(char message[20]) {
+  strcpy(msg2send,message);
+  sim908.println("AT+CMGF=1"); //sets to text mode
+  delay(1000);
+  sim908.println("AT+CMGS=\"+YOUR_PHONE_NUMBER\""); //sets phone number to send SMS
+  delay(1000);
+  sim908.print(msg2send); //prints message to SIM908
+  delay(1000);
+  sim908.write(26); // (ascii)Ctrl+Z sends message
+  deleteALL();
+}
+
+void decodeMSG(){ //decode what SMS contains and return answer form module
+//inicioCodigo+5 es donde comienza el codigo, despues de "P207 " donde P es la posicion 0;
+ if(inData.substring(inicioCodigo+5,inicioCodigo+10)=="alarma"){
+   sendSMS("Alarma ON"); //instruction to execute if keyword is "alarma"
+ }else if(inData.substring(inicioCodigo+5,inicioCodigo+13)=="ubicacion"){
+  sendSMS("Ubicacion");//instruction to execute if keyword is "ubicacion"
+ }else if(inData.substring(inicioCodigo+5,inicioCodigo+10)=="apagar"){
+ sendSMS("Apagado");//instruction to execute if keyword is "alarma"
+ } else{ //default, this is the set of intruction to execute if there is no a valid code!
+ sendSMS("Error! Codigo desconocido!"); //Error, unkown instruction
+ }
+ validCode=false;
+}
+
+void updateLocation(){ //update location routine
+  int i=0;
+   for(i=0;i<=15;i++){
+   last_latitude[i]=latitude[i];
+   last_longitude[i]=longitude[i];
+   }
+   read_GPS();
+   delay(2000);
+   
+   
+   i=0;
+   for(i=0;i<15;i++){
+     if(last_latitude[i] == latitude[i] && last_longitude[i] == longitude[i]) //if its not the same location, update!
+     {
+       iguales = true;
+     }
+     else{
+       iguales = false;
+       break;
+       }
+   }
+   
+   if(iguales==false){
+     send_GPRS();
+     delay(5000);
+   }
+}
+
+
+void timerISR(){
+  if(interruptCounter>60){ //If a minute has passed
+    updateLocation();
+    interruptCounter=0;
+    }else{
+    interruptCounter++;
+    }  
+  }
